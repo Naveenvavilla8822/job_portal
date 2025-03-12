@@ -15,6 +15,10 @@ app.get("/", function(req, res) {
     res.send("Hello world!");
 });
 
+// Use the Pug templating engine
+app.set('view engine', 'pug');
+app.set('views', './app/views');
+
 // Create a route for testing the db
 app.get("/db_test", function(req, res) {
     // Assumes a table called test_table exists in your database
@@ -22,6 +26,16 @@ app.get("/db_test", function(req, res) {
     db.query(sql).then(results => {
         console.log(results);
         res.send(results)
+    });
+});
+
+// Create a route for testing the db
+app.get("/jobs", function(req, res) {
+    // Assumes a table called test_table exists in your database
+    sql = 'select * from jobs';
+    db.query(sql).then(results => {
+        console.log(results);
+        res.render("jobs", { jobs: results });
     });
 });
 
