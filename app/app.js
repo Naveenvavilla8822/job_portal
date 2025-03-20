@@ -58,6 +58,24 @@ app.get("/jobs", function(req, res) {
     });
 });
 
+app.get("/job/:id", function(req, res) {
+    const jobId = req.params.id;  // Get the job ID from the URL parameter
+    const sql = "SELECT * FROM jobs WHERE job_id = ?";
+
+    db.query(sql, [jobId]).then(results => {
+        if (results.length === 0) {
+            return res.status(404).send("Job not found");
+        }
+
+        const job = results[0];  // Assuming the job exists
+        res.render("view", { job: job });  // Render the job detail page with the job data
+    }).catch(err => {
+        console.error("Error fetching job details:", err);
+        res.status(500).send("Error retrieving job details.");
+    });
+});
+
+
 // Create a route for /goodbye
 // Responds to a 'GET' request
 app.get("/goodbye", function(req, res) {

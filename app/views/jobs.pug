@@ -53,6 +53,7 @@ html
                 td #{job.salary_range}
                 td #{new Date(job.posted_at).toLocaleDateString()}
                 td 
-                  a.btn.btn-sm.btn-primary(href="#") View Details
+                  a.btn.btn-sm.btn-primary(href=`/job/${job.job_id}`) View Details
+
 
     script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js")

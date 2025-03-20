@@ -1,0 +1,44 @@
+doctype html
+html
+  head
+    title Job Details - #{job.title}
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1")
+    link(rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css")
+
+  body
+    include navbar
+
+    .container.mt-5
+      h1.text-center.text-primary Job Details
+      hr
+
+      .row
+        .col-md-8.offset-md-2
+          .card
+            .card-header
+              h3 #{job.title} - #{job.job_type}  
+            .card-body
+              p
+                strong Location:
+                span #{job.location}
+              p
+                strong Salary:
+                span #{job.salary_range}
+              p
+                strong Date Posted:
+                span #{new Date(job.posted_at).toLocaleDateString()}
+              p
+                strong Description:
+                span #{job.description || "No description available."}
+              p
+                strong Requirements:
+                span #{job.requirements || "No requirements listed."}
+              p
+                strong Contact Email:
+                span #{job.contact_email || "No contact email provided."}
+            
+            .card-footer
+              a.btn.btn-primary(href="/jobs") Back to Job Listings
+          
+    script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js")
