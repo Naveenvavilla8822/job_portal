@@ -29,13 +29,27 @@ app.get("/db_test", function(req, res) {
     });
 });
 
-// Create a route for testing the db
 app.get("/jobs", function(req, res) {
-    // Assumes a table called test_table exists in your database
-    sql = 'select * from jobs';
-    db.query(sql).then(results => {
-        console.log(results);
-        res.render("jobs", { jobs: results });
+    let sql = "SELECT * FROM jobs WHERE 1=1";
+    let filters = [];
+    
+    if (req.query.title) {
+        sql += " AND title LIKE ?";
+        filters.push(`%${req.query.title}%`);
+    }
+    
+    if (req.query.location) {
+        sql += " AND location LIKE ?";
+        filters.push(`%${req.query.location}%`);
+    }
+
+    if (req.query.job_type) {
+        sql += " AND job_type = ?";
+        filters.push(req.query.job_type);
+    }
+
+    db.query(sql, filters).then(results => {
+        res.render("jobs", { jobs: results, searchParams: req.query });
     });
 });
 

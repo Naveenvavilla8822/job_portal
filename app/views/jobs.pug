@@ -1,4 +1,4 @@
-doctype html
+doctype html 
 html
   head
     title Job Listings
@@ -10,6 +10,22 @@ html
     .container.mt-5
       h1.text-center.text-primary Job Listings
       hr
+
+      //- Search Form
+      form(method="GET" action="/jobs" class="mb-4")
+        .row
+          .col-md-3
+            input.form-control(type="text" name="title" placeholder="Job Title" value=searchParams.title || "")
+          .col-md-3
+            input.form-control(type="text" name="location" placeholder="Location" value=searchParams.location || "")
+          .col-md-3
+            select.form-control(name="job_type")
+              option(value="") All Job Types
+              option(value="Full-time" selected=(searchParams.job_type === 'Full-time')) Full-time
+              option(value="Part-time" selected=(searchParams.job_type === 'Part-time')) Part-time
+              option(value="Contract" selected=(searchParams.job_type === 'Contract')) Contract
+          .col-md-3
+            button.btn.btn-primary(type="submit") Search
 
       if jobs.length === 0
         .alert.alert-warning.text-center No jobs found.
