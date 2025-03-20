@@ -33,7 +33,10 @@ app.get("/db_test", function(req, res) {
         res.send(results)
     });
 });
-
+// Create a route for root - /
+app.get("/contact", function(req, res) {
+    res.render("contact");
+});
 app.get("/jobs", function(req, res) {
     let sql = "SELECT * FROM jobs WHERE 1=1";
     let filters = [];
