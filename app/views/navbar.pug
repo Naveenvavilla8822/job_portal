@@ -1,0 +1,20 @@
+nav.navbar.navbar-expand-lg.navbar-dark.bg-primary
+  .container
+    //- Logo with Home Link
+    a.navbar-brand(href="/") Job Portal
+
+    //- Mobile Menu Toggle Button
+    button.navbar-toggler(type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav")
+      span.navbar-toggler-icon
+
+    //- Navigation Menu
+    .collapse.navbar-collapse#navbarNav
+      ul.navbar-nav.me-auto
+        li.nav-item
+          a.nav-link(href="/jobs") Jobs
+        li.nav-item
+          a.nav-link(href="/post-job") Post Job
+        li.nav-item
+          a.nav-link(href="/about") About
+        li.nav-item
+          a.nav-link(href="/contact") Contact
