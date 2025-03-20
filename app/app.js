@@ -15,6 +15,11 @@ app.get("/", function(req, res) {
     res.render("Homepage");
 });
 
+// Create a route for root - /
+app.get("/about", function(req, res) {
+    res.render("Aboutpage");
+});
+
 // Use the Pug templating engine
 app.set('view engine', 'pug');
 app.set('views', './app/views');
