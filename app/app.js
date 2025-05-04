@@ -1,102 +1,200 @@
-// Import express.js
+// Import express.js to create the web application
 const express = require("express");
 
-// Create express app
+// Import User model from models
+const { User } = require("./models/user");
+
+// Create an instance of an Express app
 var app = express();
 
-// Add static files location
+// Serve static files from the "static" directory
 app.use(express.static("static"));
 
-// Get the functions in the db.js file to use
+// Import database utility functions
 const db = require('./services/db');
 
-// Create a route for root - /
+// Import and configure cookie parser middleware
+const cookieParser = require("cookie-parser");
+app.use(cookieParser());
+
+// Import and configure session middleware
+const session = require('express-session');
+const oneDay = 1000 * 60 * 60 * 24;
+const sessionMiddleware = session({
+    secret: "thisismysecrctekeyfhrgfgrfrty84fwir767", // Secret used to sign session ID cookie
+    saveUninitialized: true,
+    cookie: { maxAge: oneDay }, // Session expires in one day
+    resave: false
+});
+app.use(sessionMiddleware);
+
+// Import and configure body parser middleware to parse request bodies
+const bodyParser = require('body-parser');
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+
+// Set Pug as the templating engine
+app.set('view engine', 'pug');
+app.set('views', './app/views');
+
+// Route: Homepage
 app.get("/", function(req, res) {
     res.render("Homepage");
 });
 
-// Create a route for root - /
+// Route: About page
 app.get("/about", function(req, res) {
     res.render("Aboutpage");
 });
 
-// Use the Pug templating engine
-app.set('view engine', 'pug');
-app.set('views', './app/views');
-
-// Create a route for testing the db
-app.get("/db_test", function(req, res) {
-    // Assumes a table called test_table exists in your database
-    sql = 'select * from test_table';
-    db.query(sql).then(results => {
-        console.log(results);
-        res.send(results)
-    });
-});
-// Create a route for root - /
+// Route: Contact page
 app.get("/contact", function(req, res) {
     res.render("contact");
 });
+
+// Route: Display job listings with optional search filters
 app.get("/jobs", function(req, res) {
     let sql = "SELECT * FROM jobs WHERE 1=1";
     let filters = [];
-    
+
+    // Add title filter if present
     if (req.query.title) {
         sql += " AND title LIKE ?";
         filters.push(`%${req.query.title}%`);
     }
-    
+
+    // Add location filter if present
     if (req.query.location) {
         sql += " AND location LIKE ?";
         filters.push(`%${req.query.location}%`);
     }
 
+    // Add job type filter if present
     if (req.query.job_type) {
         sql += " AND job_type = ?";
         filters.push(req.query.job_type);
     }
 
+    // Execute the SQL query and render jobs view
     db.query(sql, filters).then(results => {
         res.render("jobs", { jobs: results, searchParams: req.query });
     });
 });
 
+// Route: Job detail page by job_id
 app.get("/job/:id", function(req, res) {
-    const jobId = req.params.id;  // Get the job ID from the URL parameter
-    const sql = "SELECT * FROM jobs WHERE job_id = ?";
+    const jobId = req.params.id;  // Get job ID from the URL
+    const sql = "SELECT * FROM jobs WHERE job_id = ?";  // SQL to fetch job by ID
 
     db.query(sql, [jobId]).then(results => {
         if (results.length === 0) {
             return res.status(404).send("Job not found");
         }
 
-        const job = results[0];  // Assuming the job exists
-        res.render("view", { job: job });  // Render the job detail page with the job data
+        const job = results[0];  // Get the job data
+        res.render("view", { job: job });  // Render job detail view
     }).catch(err => {
         console.error("Error fetching job details:", err);
         res.status(500).send("Error retrieving job details.");
     });
 });
 
+// Route: Simple DB test to fetch all data from test_table
+app.get("/db_test", function(req, res) {
+    const sql = 'SELECT * FROM test_table';
+    db.query(sql).then(results => {
+        console.log(results);
+        res.send(results);
+    });
+});
 
-// Create a route for /goodbye
-// Responds to a 'GET' request
+// Route: Goodbye page
 app.get("/goodbye", function(req, res) {
     res.send("Goodbye world!");
 });
 
-// Create a dynamic route for /hello/<name>, where name is any value provided by user
-// At the end of the URL
-// Responds to a 'GET' request
+// Route: Dynamic hello with name parameter
 app.get("/hello/:name", function(req, res) {
-    // req.params contains any parameters in the request
-    // We can examine it in the console for debugging purposes
     console.log(req.params);
-    //  Retrieve the 'name' parameter and use it in a dynamically generated page
     res.send("Hello " + req.params.name);
 });
 
-// Start server on port 3000
-app.listen(3000,function(){
+// Route: Render login page
+app.get('/login', function (req, res) {
+    res.render('login');
+});
+
+// Route: Render signup page
+app.get('/signup', function (req, res) {
+    res.render('signup');
+});
+
+// Route: Authenticate login credentials
+app.post('/authenticate', async function (req, res) {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).send('Email and password are required.');
+        }
+
+        const user = new User(email);
+        const uId = await user.getIdFromEmail();
+
+        if (!uId) {
+            return res.status(401).send('Invalid email');
+        }
+
+        const match = await user.authenticate(password);
+        if (!match) {
+            return res.status(401).send('Invalid password');
+        }
+
+        // Store user ID and login status in session
+        req.session.uid = uId;
+        req.session.loggedIn = true;
+
+        console.log(req.session.id);
+        res.redirect('/home');
+    } catch (err) {
+        console.error(`Error while authenticating user:`, err.message);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+// Route: Set or reset password
+app.post('/set-password', async function (req, res) {
+    const params = req.body;
+    const user = new User(params.email);
+
+    try {
+        const uId = await user.getIdFromEmail();
+
+        if (uId) {
+            await user.setUserPassword(params.password);
+            console.log(req.session.id);
+            res.send('Password set successfully');
+        } else {
+            const newId = await user.addUser(params.email);
+            res.send('Perhaps a page where a new user sets a programme would be good here');
+        }
+    } catch (err) {
+        console.error(`Error while adding password:`, err.message);
+    }
+});
+
+// Route: Logout user and destroy session
+app.get('/logout', function (req, res) {
+    try {
+        req.session.destroy();
+        res.redirect('/login');
+    } catch (err) {
+        console.error("Error logging out:", err);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+// Start the server and listen on port 3000
+app.listen(3000, function () {
     console.log(`Server running at http://127.0.0.1:3000/`);
 });
