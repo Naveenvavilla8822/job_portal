@@ -161,29 +161,44 @@ app.post('/authenticate', async function (req, res) {
         return res.status(400).send('Email and password are required.');
     }
 
-    const user = new User(email);
     try {
-        const uId = await user.getIdFromEmail();
+        // First, look up the ID
+        const userLookup = new User(email);
+        const uId = await userLookup.getIdFromEmail();
         if (!uId) {
             return res.status(401).send('Invalid email');
         }
 
-        const match = await user.authenticate(password);
-        if (!match) {
+        // Check password
+        const isMatch = await userLookup.authenticate(password);
+        if (!isMatch) {
             return res.status(401).send('Invalid password');
         }
 
-        // Store user ID (and you could store role if you fetch it later) in session
+        // Load full user (to get role, name, etc.)
+        const fullUser = await User.findById(uId);
+        if (!fullUser) {
+            return res.status(500).send('User record not found.');
+        }
+
+        // Save to session
         req.session.uid      = uId;
         req.session.loggedIn = true;
+        req.session.role     = fullUser.role;
 
-        console.log(`User ${uId} logged in, session ${req.session.id}`);
-        res.redirect('/');  // or wherever you want logged-in users to land
+        // Redirect based on role
+        if (fullUser.role === 'employer') {
+            return res.redirect('/dashboard');
+        } else {  // assume job_seeker
+            return res.redirect('/jobs');
+        }
+
     } catch (err) {
         console.error('Error in /authenticate:', err.message);
         res.status(500).send('Internal Server Error');
     }
 });
+
 
 // Route: Register a new user or reset password
 app.post('/set-password', async function (req, res) {
@@ -268,6 +283,31 @@ app.post("/contacts", async function (req, res) {
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
+
+// Route: Dashboard (jobs created by this user)
+app.get('/dashboard', async function (req, res) {
+    // must be logged in
+    if (!req.session.loggedIn) {
+        return res.redirect('/login');
+    }
+
+    // only employers create jobs
+    if (req.session.role !== 'employer') {
+        // for job seekers, redirect to applications page
+        return res.redirect('/jobs');
+    }
+
+    try {
+        // fetch jobs where this user is the employer
+        const sql  = "SELECT * FROM jobs WHERE employer_id = ? ORDER BY posted_at DESC";
+        const jobs = await db.query(sql, [req.session.uid]);
+        res.render('dashboard', { jobs });
+    } catch (err) {
+        console.error("Error fetching dashboard jobs:", err.message);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
 
 // Start the server and listen on port 3000
 app.listen(3000, function () {

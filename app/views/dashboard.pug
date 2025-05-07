@@ -1,0 +1,53 @@
+doctype html
+html
+  head
+    title Dashboard - Job Portal
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1")
+    // Bootstrap CSS + Icons
+    link(rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css")
+    link(rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css")
+    style.
+      body { background: #f8f9fa; }
+
+  body(class="min-vh-100 d-flex flex-column")
+    include navbar
+
+    .flex-fill
+      .container.mt-5
+        .d-flex.justify-content-between.align-items-center.mb-4
+          h1.text-primary.mb-0 My Posted Jobs
+          a.btn.btn-success(href="/jobs/new")
+            i.bi.bi-plus-lg.me-1
+            | Post New Job
+
+        if jobs.length === 0
+          .alert.alert-info.text-center You haven't posted any jobs yet.
+        else
+          .table-responsive
+            table.table.table-hover.align-middle
+              thead.table-light
+                tr
+                  th(scope="col") #
+                  th(scope="col") Title
+                  th(scope="col") Location
+                  th(scope="col") Type
+                  th(scope="col") Posted At
+                  th(scope="col") Actions
+              tbody
+                each job, idx in jobs
+                  tr
+                    td #{idx + 1}
+                    td #{job.title}
+                    td #{job.location}
+                    td #{job.job_type}
+                    td #{new Date(job.posted_at).toLocaleDateString()}
+                    td
+                      a.btn.btn-sm.btn-primary.me-1(href=`/job/${job.job_id}`)
+                        i.bi.bi-eye-fill.me-1
+                        | View
+                      a.btn.btn-sm.btn-outline-secondary(href=`/jobs/${job.job_id}/edit`)
+                        i.bi.bi-pencil-fill.me-1
+                        | Edit
+
+    script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js")
