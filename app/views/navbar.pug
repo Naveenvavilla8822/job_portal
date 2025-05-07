@@ -1,18 +1,61 @@
 nav.navbar.navbar-expand-lg.navbar-dark.bg-primary
   .container
-    //- Logo with Home Link
+    //- Logo
     a.navbar-brand(href="/") Job Portal
 
-    //- Mobile Menu Toggle Button
-    button.navbar-toggler(type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav")
+    //- Mobile toggle
+    button.navbar-toggler(
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#navbarNav"
+      aria-controls="navbarNav"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    )
       span.navbar-toggler-icon
 
-    //- Navigation Menu
+    //- Collapsible content
     .collapse.navbar-collapse#navbarNav
-      ul.navbar-nav.me-auto
+      ul.navbar-nav.me-auto.mb-2.mb-lg-0
         li.nav-item
-          a.nav-link(href="/jobs") Jobs
+          a.nav-link(href="/jobs" aria-current=(activePage=='jobs'?'page':false) class=(activePage=='jobs'?'active':'')) Jobs
         li.nav-item
-          a.nav-link(href="/about") About
+          a.nav-link(href="/about" aria-current=(activePage=='about'?'page':false) class=(activePage=='about'?'active':'')) About
         li.nav-item
-          a.nav-link(href="/contact") Contact
+          a.nav-link(href="/contact" aria-current=(activePage=='contact'?'page':false) class=(activePage=='contact'?'active':'')) Contact
+        if loggedIn
+          if user.role == 'employer'
+            li.nav-item
+              a.nav-link(href="/jobs/new" aria-current=(activePage=='post-job'?'page':false) class=(activePage=='post-job'?'active':'')) Post Job
+          else if user.role == 'job_seeker'
+            li.nav-item
+              a.nav-link(href="/applications" aria-current=(activePage=='applications'?'page':false) class=(activePage=='applications'?'active':'')) My Applications
+
+      ul.navbar-nav.ms-auto.mb-2.mb-lg-0
+        if !loggedIn
+          li.nav-item
+            a.nav-link(href="/login" aria-current=(activePage=='login'?'page':false) class=(activePage=='login'?'active':'')) Login
+          li.nav-item
+            a.nav-link(href="/signup" aria-current=(activePage=='signup'?'page':false) class=(activePage=='signup'?'active':'')) Register
+        else
+          li.nav-item.dropdown
+            a.nav-link.dropdown-toggle(
+              href="#"
+              id="navbarUser"
+              role="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            )
+              i.bi.bi-person-circle.me-1
+              | #{user.name}
+            ul.dropdown-menu.dropdown-menu-end(aria-labelledby="navbarUser")
+              //- li
+              //-   a.dropdown-item(href="/profile")
+              //-     i.bi.bi-pencil-square.me-2
+              //-     | Profile
+              //- li
+                hr.dropdown-divider
+              li
+                a.dropdown-item(href="/logout")
+                  i.bi.bi-box-arrow-right.me-2
+                  | Logout

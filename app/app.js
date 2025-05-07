@@ -31,6 +31,26 @@ const sessionMiddleware = session({
 });
 app.use(sessionMiddleware);
 
+// Make `loggedIn` and `user` available in all templates
+app.use(async function(req, res, next) {
+    // default to false
+    res.locals.loggedIn = req.session.loggedIn || false;
+
+    if (req.session.uid) {
+        try {
+            // load full user record
+            const user = await User.findById(req.session.uid);
+            if (user) {
+                res.locals.user = user;
+            }
+        } catch (err) {
+            console.error("Error loading user for navbar:", err.message);
+        }
+    }
+
+    next();
+});
+
 // Import and configure body parser middleware to parse request bodies
 const bodyParser = require('body-parser');
 app.use(bodyParser.urlencoded({ extended: true }));

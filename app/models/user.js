@@ -34,6 +34,22 @@ class User {
     constructor(email) {
         this.email = email;
     }
+    static async findById(id) {
+        var sql = "SELECT user_id, name, email, role, profile_picture, location, bio FROM users WHERE user_id = ?";
+        const rows = await db.query(sql, [id]);
+        if (rows.length === 0) {
+            return null;
+        }
+        const row = rows[0];
+        const user = new User(row.email);
+        user.user_id        = row.user_id;
+        user.name           = row.name;
+        user.role           = row.role;
+        user.profile_picture= row.profile_picture;
+        user.location       = row.location;
+        user.bio            = row.bio;
+        return user;
+    }
 
     // Look up user_id by email
     async getIdFromEmail() {
