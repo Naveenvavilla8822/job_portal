@@ -482,6 +482,113 @@ app.post('/jobs/:id/delete', async function(req, res) {
 });
 
 
+// List all applications for the currently logged-in job seeker
+app.get('/applications', async function (req, res) {
+    if (!req.session.loggedIn) {
+        return res.status(401).json({ error: 'Login required' });
+    }
+    if (req.session.role !== 'job_seeker') {
+        return res.status(403).json({ error: 'Access denied' });
+    }
+
+    try {
+        const sql = `
+            SELECT
+              a.application_id,
+              a.job_id,
+              j.title            AS job_title,
+              a.name,
+              a.email,
+              a.linkedin_url,
+              a.status,
+              a.applied_at
+            FROM applications a
+            JOIN jobs j
+              ON a.job_id = j.job_id
+            WHERE a.job_seeker_id = ?
+            ORDER BY a.applied_at DESC
+        `;
+        const apps = await db.query(sql, [req.session.uid]);
+        res.json(apps);
+    } catch (err) {
+        console.error('Error fetching applications:', err.message);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// Fetch a single application by ID (job seeker only)
+app.get('/applications/:id', async function (req, res) {
+    if (!req.session.loggedIn) {
+        return res.status(401).json({ error: 'Login required' });
+    }
+    if (req.session.role !== 'job_seeker') {
+        return res.status(403).json({ error: 'Access denied' });
+    }
+
+    try {
+        const sql = `
+            SELECT
+              application_id,
+              job_id,
+              name,
+              email,
+              linkedin_url,
+              status,
+              applied_at
+            FROM applications
+            WHERE application_id = ? AND job_seeker_id = ?
+        `;
+        const rows = await db.query(sql, [req.params.id, req.session.uid]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Not found' });
+        }
+        res.json(rows[0]);
+    } catch (err) {
+        console.error('Error fetching application:', err.message);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+
+
+// Handle inline application submission
+app.post('/jobs/:id/apply', async function(req, res) {
+    // only logged-in job seekers may apply
+    if (!req.session.loggedIn || req.session.role !== 'job_seeker') {
+        return res.status(401).json({ error: 'Login required' });
+    }
+
+    const jobId       = req.params.id;
+    const userId      = req.session.uid;
+    const name        = (req.body.name || '').trim();
+    const email       = (req.body.email || '').trim();
+    const linkedinUrl = (req.body.linkedin || '').trim();
+
+    if (!name || !email || !linkedinUrl) {
+        return res.status(400).json({ error: 'Name, email and LinkedIn URL are required.' });
+    }
+
+    try {
+        const sql = `
+            INSERT INTO applications
+              (job_id, job_seeker_id, name, email, linkedin_url)
+            VALUES (?, ?, ?, ?, ?)
+        `;
+        const result = await db.query(sql, [
+            jobId,
+            userId,
+            name,
+            email,
+            linkedinUrl
+        ]);
+
+        return res.status(201).send("Applied successfully");
+    } catch (err) {
+        console.error('Error saving application:', err);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 
 // Start the server and listen on port 3000
 app.listen(3000, function () {
