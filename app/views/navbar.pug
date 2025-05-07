@@ -15,6 +15,12 @@ nav.navbar.navbar-expand-lg.navbar-dark.bg-primary
             aria-current=(activePage=='post-job'?'page':false)
             class=(activePage=='post-job'?'active':'')
           ) Post Job
+        li.nav-item
+          a.nav-link(
+            href="/employer/applications"
+            aria-current=(activePage=='applications'?'page':false)
+            class=(activePage=='applications'?'active':'')
+          ) Applications
       ul.navbar-nav.ms-auto.mb-2.mb-lg-0
         li.nav-item
           a.nav-link(href="/logout")
@@ -78,10 +84,6 @@ nav.navbar.navbar-expand-lg.navbar-dark.bg-primary
                 i.bi.bi-person-circle.fs-4.me-2
               | #{user.name}
             ul.dropdown-menu.dropdown-menu-end(aria-labelledby="navbarUser")
-              li
-                a.dropdown-item(href="/profile")
-                  i.bi.bi-pencil-square.me-2
-                  | Profile
               hr.dropdown-divider
               li
                 a.dropdown-item(href="/logout")

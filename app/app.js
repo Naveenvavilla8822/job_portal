@@ -590,6 +590,41 @@ app.post('/jobs/:id/apply', async function(req, res) {
 });
 
 
+// Employer: view all applications to this employer's jobs
+app.get('/employer/applications', async function(req, res) {
+    if (!req.session.loggedIn || req.session.role !== 'employer') {
+        return res.redirect('/login');
+    }
+
+    try {
+        const sql = `
+            SELECT
+              a.application_id,
+              a.job_id,
+              j.title      AS job_title,
+              a.name       AS applicant_name,
+              a.email      AS applicant_email,
+              a.linkedin_url,
+              a.status,
+              a.applied_at
+            FROM applications a
+            JOIN jobs j
+              ON a.job_id = j.job_id
+            WHERE j.employer_id = ?
+            ORDER BY a.applied_at DESC
+        `;
+        const apps = await db.query(sql, [req.session.uid]);
+        res.render('employer-applications', {
+            apps,
+            activePage: 'employer-applications'
+        });
+    } catch (err) {
+        console.error("Error fetching employer applications:", err.message);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+
 // Start the server and listen on port 3000
 app.listen(3000, function () {
     console.log(`Server running at http://127.0.0.1:3000/`);
