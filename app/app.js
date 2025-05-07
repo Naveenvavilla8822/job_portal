@@ -134,16 +134,16 @@ app.get('/signup', function (req, res) {
 
 // Route: Authenticate login credentials
 app.post('/authenticate', async function (req, res) {
+    const email    = req.body.email;
+    const password = req.body.password;
+
+    if (!email || !password) {
+        return res.status(400).send('Email and password are required.');
+    }
+
+    const user = new User(email);
     try {
-        const { email, password } = req.body;
-
-        if (!email || !password) {
-            return res.status(400).send('Email and password are required.');
-        }
-
-        const user = new User(email);
         const uId = await user.getIdFromEmail();
-
         if (!uId) {
             return res.status(401).send('Invalid email');
         }
@@ -153,36 +153,49 @@ app.post('/authenticate', async function (req, res) {
             return res.status(401).send('Invalid password');
         }
 
-        // Store user ID and login status in session
-        req.session.uid = uId;
+        // Store user ID (and you could store role if you fetch it later) in session
+        req.session.uid      = uId;
         req.session.loggedIn = true;
 
-        console.log(req.session.id);
-        res.redirect('/home');
+        console.log(`User ${uId} logged in, session ${req.session.id}`);
+        res.redirect('/');  // or wherever you want logged-in users to land
     } catch (err) {
-        console.error(`Error while authenticating user:`, err.message);
+        console.error('Error in /authenticate:', err.message);
         res.status(500).send('Internal Server Error');
     }
 });
 
-// Route: Set or reset password
+// Route: Register a new user or reset password
 app.post('/set-password', async function (req, res) {
-    const params = req.body;
-    const user = new User(params.email);
+    const name     = req.body.name;       // for new user
+    const email    = req.body.email;
+    const password = req.body.password;
+    const role     = req.body.role;       // e.g. 'job_seeker' or 'employer'
 
+    if (!email || !password) {
+        return res.status(400).send('Email and password are required.');
+    }
+
+    const user = new User(email);
     try {
-        const uId = await user.getIdFromEmail();
+        const existingId = await user.getIdFromEmail();
 
-        if (uId) {
-            await user.setUserPassword(params.password);
-            console.log(req.session.id);
-            res.send('Password set successfully');
+        if (existingId) {
+            // user exists → just change their password
+            await user.setUserPassword(password);
+            res.send('Password updated successfully.');
         } else {
-            const newId = await user.addUser(params.email);
-            res.send('Perhaps a page where a new user sets a programme would be good here');
+            // new user → name is required
+            if (!name) {
+                return res.status(400).send('Name is required for registration.');
+            }
+            // role defaults to job_seeker if not provided
+            await user.addUser(name, password, role || 'job_seeker');
+            res.send('Registration successful.');
         }
     } catch (err) {
-        console.error(`Error while adding password:`, err.message);
+        console.error('Error in /set-password:', err.message);
+        res.status(500).send('Internal Server Error');
     }
 });
 

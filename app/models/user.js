@@ -5,54 +5,78 @@ const bcrypt = require("bcryptjs");
 class User {
 
     // Id of the user
-    id;
+    user_id;
+
+    // Name of the user
+    name;
 
     // Email of the user
     email;
 
+    // Role of the user (job_seeker or employer)
+    role;
+
+    // Hashed password
+    password_hash;
+
+    // Profile picture URL
+    profile_picture;
+
+    // Location of the user
+    location;
+
+    // Bio text
+    bio;
+
+    // Timestamp when account was created
+    created_at;
+
     constructor(email) {
         this.email = email;
     }
+
+    // Look up user_id by email
     async getIdFromEmail() {
-        var sql = "SELECT id FROM Users WHERE Users.email = ?";
+        var sql    = "SELECT user_id FROM users WHERE email = ?";
         const result = await db.query(sql, [this.email]);
         // TODO LOTS OF ERROR CHECKS HERE..
         if (JSON.stringify(result) != '[]') {
-            this.id = result[0].id;
-            return this.id;
-        }
-        else {
-            return false;
-        }
-    }
-    async setUserPassword(password) {
-        const pw = await bcrypt.hash(password, 10);
-        var sql = "UPDATE Users SET password = ? WHERE Users.id = ?"
-        const result = await db.query(sql, [pw, this.id]);
-        return true;
-    }
-    async addUser(password) {
-        const pw = await bcrypt.hash(password, 10);
-        var sql = "INSERT INTO Users (email, password) VALUES (? , ?)";
-        const result = await db.query(sql, [this.email, pw]);
-        console.log(result.insertId);
-        this.id = result.insertId;
-        return true;
-    }
-    async authenticate(submitted) {
-        // Get the stored, hashed password for the user
-        var sql = "SELECT password FROM Users WHERE id = ?";
-        const result = await db.query(sql, [this.id]);
-        const match = await bcrypt.compare(submitted, result[0].password);
-        if (match == true) {
-            return true;
-        }
-        else {
+            this.user_id = result[0].user_id;
+            return this.user_id;
+        } else {
             return false;
         }
     }
 
+    // Update this user's password
+    async setUserPassword(password) {
+        const pw = await bcrypt.hash(password, 10);
+        var sql    = "UPDATE users SET password_hash = ? WHERE user_id = ?";
+        await db.query(sql, [pw, this.user_id]);
+        return true;
+    }
+
+    // Create a new user record (must pass name and password; role defaults to job_seeker)
+    async addUser(name, password, role = 'job_seeker') {
+        const pw = await bcrypt.hash(password, 10);
+        var sql    = "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)";
+        const result = await db.query(sql, [name, this.email, pw, role]);
+        console.log(result.insertId);
+        this.user_id = result.insertId;
+        return true;
+    }
+
+    // Verify a submitted password against the stored hash
+    async authenticate(submitted) {
+        // Get the stored, hashed password for the user
+        var sql    = "SELECT password_hash FROM users WHERE user_id = ?";
+        const result = await db.query(sql, [this.user_id]);
+        const match = await bcrypt.compare(submitted, result[0].password_hash);
+        return match === true;
+    }
+
 }
-module.exports  = {
+
+module.exports = {
     User,
-}
+};
