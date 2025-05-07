@@ -4,6 +4,9 @@ const express = require("express");
 // Import User model from models
 const { User } = require("./models/user");
 
+// Get the Contact model
+const { Contact } = require("./models/contact");
+
 // Create an instance of an Express app
 var app = express();
 
@@ -38,22 +41,22 @@ app.set('view engine', 'pug');
 app.set('views', './app/views');
 
 // Route: Homepage
-app.get("/", function(req, res) {
+app.get("/", function (req, res) {
     res.render("Homepage");
 });
 
 // Route: About page
-app.get("/about", function(req, res) {
+app.get("/about", function (req, res) {
     res.render("Aboutpage");
 });
 
 // Route: Contact page
-app.get("/contact", function(req, res) {
+app.get("/contact", function (req, res) {
     res.render("contact");
 });
 
 // Route: Display job listings with optional search filters
-app.get("/jobs", function(req, res) {
+app.get("/jobs", function (req, res) {
     let sql = "SELECT * FROM jobs WHERE 1=1";
     let filters = [];
 
@@ -82,7 +85,7 @@ app.get("/jobs", function(req, res) {
 });
 
 // Route: Job detail page by job_id
-app.get("/job/:id", function(req, res) {
+app.get("/job/:id", function (req, res) {
     const jobId = req.params.id;  // Get job ID from the URL
     const sql = "SELECT * FROM jobs WHERE job_id = ?";  // SQL to fetch job by ID
 
@@ -100,7 +103,7 @@ app.get("/job/:id", function(req, res) {
 });
 
 // Route: Simple DB test to fetch all data from test_table
-app.get("/db_test", function(req, res) {
+app.get("/db_test", function (req, res) {
     const sql = 'SELECT * FROM test_table';
     db.query(sql).then(results => {
         console.log(results);
@@ -109,12 +112,12 @@ app.get("/db_test", function(req, res) {
 });
 
 // Route: Goodbye page
-app.get("/goodbye", function(req, res) {
+app.get("/goodbye", function (req, res) {
     res.send("Goodbye world!");
 });
 
 // Route: Dynamic hello with name parameter
-app.get("/hello/:name", function(req, res) {
+app.get("/hello/:name", function (req, res) {
     console.log(req.params);
     res.send("Hello " + req.params.name);
 });
@@ -191,6 +194,45 @@ app.get('/logout', function (req, res) {
     } catch (err) {
         console.error("Error logging out:", err);
         res.status(500).send('Internal Server Error');
+    }
+});
+
+// Contacts API: list all messages
+app.get("/contacts", async function (req, res) {
+    try {
+        const rows = await Contact.getAll();
+        res.json(rows);
+    } catch (err) {
+        console.error("Error fetching contacts:", err.message);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+// Contacts API: create a new message
+app.post("/contacts", async function (req, res) {
+    const name = req.body.name;
+    const email = req.body.email;
+    const subject = req.body.subject;
+    const message = req.body.message;
+
+    if (!name || !email || !subject || !message) {
+        return res.status(400).json({ error: "name, email, subject and message are required" });
+    }
+
+    try {
+        const contact = new Contact(name, email, subject, message);
+        const id = await contact.save();
+        res.status(201).json({
+            id: id,
+            name: name,
+            email: email,
+            subject: subject,
+            message: message,
+            submitted_at: new Date().toISOString()
+        });
+    } catch (err) {
+        console.error("Error saving contact message:", err.message);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
