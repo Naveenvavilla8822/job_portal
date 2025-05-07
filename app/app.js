@@ -308,6 +308,180 @@ app.get('/dashboard', async function (req, res) {
     }
 });
 
+// --- Create Job ---
+
+// Render “New Job” form
+app.get('/jobs/new', async function(req, res) {
+    // only employers can post
+    if (!req.session.loggedIn || req.session.role !== 'employer') {
+        return res.redirect('/login');
+    }
+
+    try {
+        // load every company
+        const companies = await db.query(
+            'SELECT company_id, name FROM companies ORDER BY name'
+        );
+        console.log('companies loaded:', companies.length);  // debug
+
+        res.render('new-job', {
+            companies,          
+            activePage: 'post-job'
+        });
+    } catch (err) {
+        console.error("Error loading new-job form:", err.message);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+// Handle “New Job” submission
+app.post('/jobs/new', async function(req, res) {
+    if (!req.session.loggedIn || req.session.role !== 'employer') {
+        return res.redirect('/login');
+    }
+
+    const title        = req.body.title;
+    const description  = req.body.description;
+    const salary_range = req.body.salary_range;
+    const job_type     = req.body.job_type;
+    const location     = req.body.location;
+    const company_id   = req.body.company_id;
+    const employer_id  = req.session.uid;
+
+    // basic validation
+    if (!title || !description || !job_type || !company_id) {
+        return res.status(400).send('Title, description, job type and company are required.');
+    }
+
+    try {
+        const sql = `
+            INSERT INTO jobs
+              (employer_id, company_id, title, description, salary_range, job_type, location)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `;
+        await db.query(sql, [
+            employer_id,
+            company_id,
+            title,
+            description,
+            salary_range,
+            job_type,
+            location
+        ]);
+        res.redirect('/dashboard');
+    } catch (err) {
+        console.error("Error creating job:", err.message);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+// --- Update Job ---
+
+// Render “Edit Job” form
+app.get('/jobs/:id/edit', async function(req, res) {
+    // only employers can edit
+    if (!req.session.loggedIn || req.session.role !== 'employer') {
+        return res.redirect('/login');
+    }
+
+    const jobId = req.params.id;
+    try {
+        // 1) load the job (ensure it belongs to this employer)
+        const rows = await db.query(
+            'SELECT * FROM jobs WHERE job_id = ? AND employer_id = ?',
+            [jobId, req.session.uid]
+        );
+        if (rows.length === 0) {
+            return res.status(404).send('Job not found');
+        }
+        const job = rows[0];
+
+        // 2) load ALL companies (so dropdown always has options)
+        const companies = await db.query(
+            'SELECT company_id, name FROM companies ORDER BY name'
+        );
+        console.log('edit-job companies loaded:', companies.length);
+
+        // 3) render
+        res.render('edit-job', {
+            job,
+            companies,
+            activePage: 'dashboard'
+        });
+    } catch (err) {
+        console.error("Error loading edit-job form:", err.message);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+// Handle “Edit Job” submission
+app.post('/jobs/:id/edit', async function(req, res) {
+    if (!req.session.loggedIn || req.session.role !== 'employer') {
+        return res.redirect('/login');
+    }
+
+    const jobId        = req.params.id;
+    const title        = req.body.title;
+    const description  = req.body.description;
+    const salary_range = req.body.salary_range;
+    const job_type     = req.body.job_type;
+    const location     = req.body.location;
+    const company_id   = req.body.company_id;
+
+    if (!title || !description || !job_type || !company_id) {
+        return res.status(400).send('Title, description, job type and company are required.');
+    }
+
+    try {
+        const sql = `
+            UPDATE jobs
+            SET company_id   = ?,
+                title        = ?,
+                description  = ?,
+                salary_range = ?,
+                job_type     = ?,
+                location     = ?
+            WHERE job_id = ? AND employer_id = ?
+        `;
+        await db.query(sql, [
+            company_id,
+            title,
+            description,
+            salary_range,
+            job_type,
+            location,
+            jobId,
+            req.session.uid
+        ]);
+        res.redirect('/dashboard');
+    } catch (err) {
+        console.error("Error updating job:", err.message);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+// --- Delete Job ---
+
+// Handle “Delete Job”
+app.post('/jobs/:id/delete', async function(req, res) {
+    if (!req.session.loggedIn || req.session.role !== 'employer') {
+        return res.redirect('/login');
+    }
+
+    const jobId = req.params.id;
+    try {
+        await db.query(
+            'DELETE FROM jobs WHERE job_id = ? AND employer_id = ?',
+            [jobId, req.session.uid]
+        );
+        res.redirect('/dashboard');
+    } catch (err) {
+        console.error("Error deleting job:", err.message);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+
 
 // Start the server and listen on port 3000
 app.listen(3000, function () {
